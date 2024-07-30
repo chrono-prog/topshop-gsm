@@ -1,3 +1,4 @@
+import hashlib
 from cs50 import SQL
 from flask_session import Session
 from flask import Flask, render_template, redirect, request, session, jsonify
@@ -191,13 +192,16 @@ def logged():
     # Get log in info from log in form
     user = request.form["username"].lower()
     pwd = request.form["password"]
-    #pwd = str(sha1(request.form["password"].encode('utf-8')).hexdigest())
+
     # Make sure form input is not blank and re-render log in page if blank
     if user == "" or pwd == "":
         return render_template ( "login.html" )
+        
+    hashed_password = hashlib.md5(pwd.encode()).hexdigest()
+
     # Find out if info in form matches a record in user database
     query = "SELECT * FROM users WHERE username = :user AND password = :pwd"
-    rows = db.execute ( query, user=user, pwd=pwd )
+    rows = db.execute ( query, user=user, pwd=hashed_password )
 
     # If username and password match a record in database, set session variables
     if len(rows) == 1:
@@ -243,6 +247,9 @@ def registration():
     fname = request.form["fname"]
     lname = request.form["lname"]
     email = request.form["email"]
+
+    hashed_password = hashlib.md5(password.encode()).hexdigest()
+
     # See if username already in the database
     rows = db.execute( "SELECT * FROM users WHERE username = :username ", username = username )
     # If username already exists, alert user
@@ -250,7 +257,7 @@ def registration():
         return render_template ( "new.html", msg="Username already exists!" )
     # If new user, upload his/her info into the users database
     new = db.execute ( "INSERT INTO users (username, password, fname, lname, email) VALUES (:username, :password, :fname, :lname, :email)",
-                    username=username, password=password, fname=fname, lname=lname, email=email )
+                    username=username, password=hashed_password, fname=fname, lname=lname, email=email )
     # Render login template
     return render_template ( "login.html" )
 
